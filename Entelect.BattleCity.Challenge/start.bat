@@ -1,0 +1,1 @@
+"bin/Release/Entelect.BattleCity.Challenge.exe" %1

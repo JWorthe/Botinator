@@ -1,0 +1,1 @@
+MSBuild.exe /property:Configuration=Release Entelect.BattleCity.Challenge.csproj
