@@ -5,59 +5,132 @@ using System.Threading;
 
 namespace Entelect.BattleCity.Challenge
 {
-    class GameInProgress
+    public class GameInProgress
     {
-        public static void run(ChallengeService.ChallengeClient service, ChallengeService.state?[][] state)
-        {
-            AiAgent agent = new AiAgent();
+        private ChallengeService.ChallengeClient _service;
+        private ChallengeService.game _currentState;
+        private ChallengeService.player _me;
+        private ChallengeService.player _enemy;
 
+        private ChallengeService.state?[][] _board;
+
+        private AiAgent _tank1Ai;
+        private AiAgent _tank2Ai;
+
+        public GameInProgress(ChallengeService.ChallengeClient service, ChallengeService.state?[][] board)
+        {
+            _service = service;
+            _board = board;
+
+            updateGameStatus();
+
+            _tank1Ai = new AiAgent(_me.units[0].id);
+            _tank2Ai = new AiAgent(_me.units[1].id);
+        }
+
+
+
+        public void run()
+        {
             while (true)
             {
-                var game = service.getStatus();
                 long currentTick = DateTime.Now.Ticks;
-                long nextTick = game.nextTickTime.Ticks;
+                long nextTick = _currentState.nextTickTime.Ticks;
                 if (currentTick > nextTick)
                 {
+                    Console.Error.WriteLine("Current game state is out of date");
+                    updateGameStatus();
                     continue;
                 }
+                makeNextMove();
+                waitForNextTick();
 
-                // AI logic here
-                Move tank1Move = agent.GetBestMove(state, game, 0);
-                Move tank2Move = agent.GetBestMove(state, game, 1);
+                updateGameStatus();
+            }
+        }
 
-                if (tank1Move != null)
-                {
-                    service.setActionAsync(tank1Move.Tank, tank1Move.Action);
-                }
-                if (tank2Move != null)
-                {
-                    service.setActionAsync(tank2Move.Tank, tank2Move.Action);
-                }
+        private void makeNextMove()
+        {
+            Move tank1Move = _tank1Ai.GetBestMove(_currentState, _board, _me, _enemy);
+            Move tank2Move = _tank2Ai.GetBestMove(_currentState, _board, _me, _enemy);
 
-                currentTick = DateTime.Now.Ticks;
+            sendMovesToService(tank1Move, tank2Move);
+        }
 
-                long sleepTime = nextTick - currentTick;
-                if (sleepTime < 0L)
-                {
-                    Console.Error.WriteLine("ERROR: Gone passed the next tick time");
-                }
-                else
-                {
-                    Console.WriteLine("Sleeping until {1} for {0}ms", sleepTime, game.nextTickTime.ToString());
-                }
+        private void sendMovesToService(Move tank1Move, Move tank2Move)
+        {
+            if (tank1Move != null && tank2Move != null)
+            {
+                Console.WriteLine("Actions chosen for two tanks");
+                Console.WriteLine(tank1Move.ToString());
+                Console.WriteLine(tank2Move.ToString());
+                _service.setActions(tank1Move.Action, tank2Move.Action);
+            }
+            else if (tank1Move != null)
+            {
+                Console.WriteLine("Actions chosen for first tank only");
+                Console.WriteLine(tank1Move.ToString());
+                _service.setAction(tank1Move.Tank, tank1Move.Action);
+            }
+            else if (tank2Move != null)
+            {
+                Console.WriteLine("Actions chosen for second tank only");
+                Console.WriteLine(tank2Move.ToString());
+                _service.setAction(tank2Move.Tank, tank2Move.Action);
+            }
+        }
 
+        private void waitForNextTick()
+        {
+            var nextTick = _currentState.nextTickTime.Ticks;
+            var currentTick = DateTime.Now.Ticks;
+
+            long sleepTime = nextTick - currentTick;
+            if (sleepTime < 0L)
+            {
+                Console.Error.WriteLine("ERROR: Gone passed the next tick time");
+            }
+            else
+            {
+                Console.WriteLine("Sleeping until {1} for {0}ms", sleepTime, _currentState.nextTickTime.ToString());
                 try
                 {
                     Thread.Sleep(TimeSpan.FromTicks(sleepTime));
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    continue;
+                    Console.Error.WriteLine("Exception thrown while waiting for next tick");
+                    Console.Error.WriteLine("Exception message: "+ ex.Message);
                 }
-                //while (startTick < nextTick)
-                //{
-                //    startTick += (DateTime.Now.Ticks - startTick);
-                //}
+            }
+        }
+
+        private void updateGameStatus()
+        {
+            _currentState = _service.getStatus();
+
+            bool meFound = false;
+            bool enemyFound = false;
+
+            foreach (ChallengeService.player player in _currentState.players)
+            {
+                if (player.name.Equals(_currentState.playerName))
+                {
+                    _me = player;
+                }
+                else
+                {
+                    _enemy = player;
+                }
+            }
+
+            if (!meFound)
+            {
+                Console.Error.WriteLine("Logged in player was not found");
+            }
+            if (!enemyFound)
+            {
+                Console.Error.WriteLine("Logged in opponent was not found");
             }
         }
     }

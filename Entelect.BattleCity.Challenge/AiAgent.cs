@@ -7,46 +7,35 @@ namespace Entelect.BattleCity.Challenge
     {
         private int _tankId;
 
-        public AiAgent()
-        {
-
-        }
-
         public AiAgent(int tankId)
         {
             _tankId = tankId;
         }
 
-        public Move GetBestMove(ChallengeService.state?[][] state, ChallengeService.game game, int tankIndex)
+        public Move GetBestMove(ChallengeService.game game, ChallengeService.state?[][] board, ChallengeService.player me, ChallengeService.player enemy)
         {
-            ChallengeService.player me = null;
-            ChallengeService.player enemy = null;
             ChallengeService.unit tank = null;
             bool bulletInAir = false;
 
-            string playerName = game.playerName;
-            foreach (ChallengeService.player player in game.players)
+            foreach (var unit in me.units)
             {
-                if (player.name.Equals(playerName))
+                if (unit.id == _tankId)
                 {
-                    me = player;
-                }
-                else
-                {
-                    enemy = player;
+                    tank = unit;
                 }
             }
-            if (me.units.Length <= tankIndex)
+
+            if (tank == null)
             {
+                Console.WriteLine("Tank {0} does not exist", _tankId);
                 return null;
             }
-            tank = me.units[tankIndex];
 
             if (me.bullets != null)
             {
                 foreach (var bullet in me.bullets)
                 {
-                    if (Math.Abs(bullet.x - tank.x) < state.Length / 4)
+                    if (Math.Abs(bullet.x - tank.x) < board.Length / 4)
                     {
                         bulletInAir = true;
                     }
@@ -56,17 +45,19 @@ namespace Entelect.BattleCity.Challenge
             var enemyBase = enemy.@base;
 
             ChallengeService.direction chosenDirection = 
-                tank.y != enemyBase.y ?
+                tank.y+2 != enemyBase.y ?
                 (
-                    tank.y > enemyBase.y ?
+                    tank.y+2 > enemyBase.y ?
                     ChallengeService.direction.UP :
                     ChallengeService.direction.DOWN
                 ) :
                 (
-                    tank.x > enemyBase.x ?
+                    tank.x+2 > enemyBase.x ?
                     ChallengeService.direction.LEFT :
                     ChallengeService.direction.RIGHT
                 );
+
+            Console.WriteLine("Chosen direction for tank {0} is {1} and bulletInAir is {2}", _tankId, chosenDirection, bulletInAir);
 
             if (chosenDirection != tank.direction || bulletInAir)
             {

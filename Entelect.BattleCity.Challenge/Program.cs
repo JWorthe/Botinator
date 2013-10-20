@@ -9,8 +9,10 @@ namespace Entelect.BattleCity.Challenge
             var endpointConfigurationName = "ChallengePort";
             var address = new EndpointAddress(args[0]);
             var service = new ChallengeService.ChallengeClient(endpointConfigurationName, address);
-            var state = service.login();
-            GameInProgress.run(service, state);
+            var board = service.login();
+
+            var game = new GameInProgress(service, board);
+            game.run();
         }
     }
 }

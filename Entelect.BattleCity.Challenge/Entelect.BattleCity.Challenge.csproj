@@ -56,7 +56,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="ChallengeService.wsdl" />
     <None Include="Service References\ChallengeService\ChallengeService.wsdl" />
     <None Include="Service References\ChallengeService\Entelect.BattleCity.Challenge.ChallengeService.delta.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>

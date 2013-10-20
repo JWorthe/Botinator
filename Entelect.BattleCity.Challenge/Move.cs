@@ -15,5 +15,10 @@ namespace Entelect.BattleCity.Challenge
             Tank = tank;
             Action = action;
         }
+
+        public override string ToString()
+        {
+            return string.Format("Tank {0}: {1}", Tank, Action.ToString());
+        }
     }
 }
