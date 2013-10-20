@@ -66,14 +66,14 @@ namespace Entelect.BattleCity.Challenge
             var enemyBase = enemy.@base;
 
             ChallengeService.direction chosenDirection = 
-                tank.y+2 != enemyBase.y ?
+                tank.y != enemyBase.y ?
                 (
-                    tank.y+2 > enemyBase.y ?
+                    tank.y > enemyBase.y ?
                     ChallengeService.direction.UP :
                     ChallengeService.direction.DOWN
                 ) :
                 (
-                    tank.x+2 > enemyBase.x ?
+                    tank.x > enemyBase.x ?
                     ChallengeService.direction.LEFT :
                     ChallengeService.direction.RIGHT
                 );
