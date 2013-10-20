@@ -35,23 +35,6 @@ namespace Entelect.BattleCity.Challenge
                 return null;
             }
 
-            /*if (game.events != null && game.events.unitEvents != null)
-            {
-                foreach (var unitEvent in game.events.unitEvents)
-                {
-                    if (unitEvent.unit != null && unitEvent.unit.id == _tankId && unitEvent.bullet != null)
-                    {
-                        Console.WriteLine("Tank was shot");
-                        return null;
-                    }
-                }
-                Console.WriteLine("No relevant events in unit events list", _tankId);
-            }
-            else
-            {
-                Console.WriteLine("No events in unit events list", _tankId);
-            }*/
-
             if (me.bullets != null)
             {
                 foreach (var bullet in me.bullets)
