@@ -17,11 +17,15 @@ namespace Entelect.BattleCity.Challenge
             ChallengeService.unit tank = null;
             bool bulletInAir = false;
 
-            foreach (var unit in me.units)
+            if (me != null && me.units != null)
             {
-                if (unit.id == _tankId)
+                foreach (var unit in me.units)
                 {
-                    tank = unit;
+                    if (unit.id == _tankId)
+                    {
+                        Console.WriteLine("Tank found in list of tanks");
+                        tank = unit;
+                    }
                 }
             }
 
@@ -30,6 +34,23 @@ namespace Entelect.BattleCity.Challenge
                 Console.WriteLine("Tank {0} does not exist", _tankId);
                 return null;
             }
+
+            /*if (game.events != null && game.events.unitEvents != null)
+            {
+                foreach (var unitEvent in game.events.unitEvents)
+                {
+                    if (unitEvent.unit != null && unitEvent.unit.id == _tankId && unitEvent.bullet != null)
+                    {
+                        Console.WriteLine("Tank was shot");
+                        return null;
+                    }
+                }
+                Console.WriteLine("No relevant events in unit events list", _tankId);
+            }
+            else
+            {
+                Console.WriteLine("No events in unit events list", _tankId);
+            }*/
 
             if (me.bullets != null)
             {

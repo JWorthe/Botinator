@@ -7,6 +7,8 @@ namespace Entelect.BattleCity.Challenge
 {
     public class GameInProgress
     {
+        private static ChallengeService.action _nullAction = ChallengeService.action.NONE;
+
         private ChallengeService.ChallengeClient _service;
         private ChallengeService.game _currentState;
         private ChallengeService.player _me;
@@ -34,11 +36,12 @@ namespace Entelect.BattleCity.Challenge
         {
             while (true)
             {
-                long currentTick = DateTime.Now.Ticks;
                 long nextTick = _currentState.nextTickTime.Ticks;
+                long currentTick = DateTime.Now.Ticks;
+
                 if (currentTick > nextTick)
                 {
-                    Console.Error.WriteLine("Current game state is out of date");
+                    Console.Error.WriteLine("Waiting for next tick. Current time: {0}, next game tick at: {1}", currentTick, nextTick);
                     updateGameStatus();
                     continue;
                 }
@@ -78,6 +81,10 @@ namespace Entelect.BattleCity.Challenge
                 Console.WriteLine(tank2Move.ToString());
                 _service.setAction(tank2Move.Tank, tank2Move.Action);
             }
+            else
+            {
+                Console.WriteLine("No tanks to set actions for");
+            }
         }
 
         private void waitForNextTick()
@@ -85,23 +92,25 @@ namespace Entelect.BattleCity.Challenge
             var nextTick = _currentState.nextTickTime.Ticks;
             var currentTick = DateTime.Now.Ticks;
 
-            long sleepTime = nextTick - currentTick;
-            if (sleepTime < 0L)
+            var sleepTime = TimeSpan.FromTicks(nextTick - currentTick)+TimeSpan.FromMilliseconds(500);
+            if (sleepTime.Ticks < 0L)
             {
                 Console.Error.WriteLine("ERROR: Gone passed the next tick time");
             }
             else
             {
-                Console.WriteLine("Sleeping until {1} for {0}ms", sleepTime, _currentState.nextTickTime.ToString());
+                Console.WriteLine("Sleeping until {1} for {0} processor ticks", sleepTime.Ticks, nextTick);
                 try
                 {
-                    Thread.Sleep(TimeSpan.FromTicks(sleepTime));
+                    Thread.Sleep(sleepTime);
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine("Exception thrown while waiting for next tick");
                     Console.Error.WriteLine("Exception message: "+ ex.Message);
                 }
+
+                Console.WriteLine("Time after sleep: {0}", DateTime.Now.Ticks);
             }
         }
 
@@ -117,10 +126,12 @@ namespace Entelect.BattleCity.Challenge
                 if (player.name.Equals(_currentState.playerName))
                 {
                     _me = player;
+                    meFound = true;
                 }
                 else
                 {
                     _enemy = player;
+                    enemyFound = true;
                 }
             }
 
