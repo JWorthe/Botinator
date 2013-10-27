@@ -5,17 +5,26 @@ namespace Entelect.BattleCity.Challenge
 {
     class AiAgent
     {
+        private int? _lastX;
+        private int? _lastY;
+        private ChallengeService.action _lastAction;
+        private bool _hasShotFromLastPosition;
+
         private int _tankId;
+
+        private int? _targetX;
 
         public AiAgent(int tankId)
         {
             _tankId = tankId;
+            _lastAction = ChallengeService.action.NONE;
+            _hasShotFromLastPosition = false;
         }
 
         public Move GetBestMove(ChallengeService.game game, ChallengeService.state?[][] board, ChallengeService.player me, ChallengeService.player enemy)
         {
+            Move move = null;
             ChallengeService.unit tank = null;
-            bool bulletInAir = false;
 
             if (me != null && me.units != null)
             {
@@ -35,25 +44,40 @@ namespace Entelect.BattleCity.Challenge
                 return null;
             }
 
-            if (me.bullets != null)
+            if (tank.x != _lastX || tank.y != _lastY)
             {
-                foreach (var bullet in me.bullets)
-                {
-                    if (Math.Abs(bullet.x - tank.x) < board.Length / 4)
-                    {
-                        bulletInAir = true;
-                    }
-                }
+                _hasShotFromLastPosition = false;
             }
 
+            var bulletInAir = checkIsBulletInAir(board, me, tank);
+            var stuckLastTurn = checkStuckLastTurn(tank);
+
             var enemyBase = enemy.@base;
+			
+			var pastMidpoint = (Math.Abs(enemyBase.y-tank.y) < board[0].Length / 2);
+
+            if (stuckLastTurn && (tank.direction == ChallengeService.direction.UP || tank.direction == ChallengeService.direction.DOWN))
+            {
+                _targetX = tank.x + (pastMidpoint!=(tank.x > enemyBase.x) ? +1 : -1);
+            }
+			
+			
 
             ChallengeService.direction chosenDirection = 
                 tank.y != enemyBase.y ?
                 (
-                    tank.y > enemyBase.y ?
-                    ChallengeService.direction.UP :
-                    ChallengeService.direction.DOWN
+                    _targetX.HasValue && _targetX != tank.x ?
+                    (
+						
+                        tank.x > _targetX ?
+                        ChallengeService.direction.LEFT :
+                        ChallengeService.direction.RIGHT
+                    ) :
+                    (
+                        tank.y > enemyBase.y ?
+                        ChallengeService.direction.UP :
+                        ChallengeService.direction.DOWN
+                    )
                 ) :
                 (
                     tank.x > enemyBase.x ?
@@ -65,12 +89,19 @@ namespace Entelect.BattleCity.Challenge
 
             if (chosenDirection != tank.direction || bulletInAir)
             {
-                return MoveInDirection(tank.id, chosenDirection);
+                move = MoveInDirection(tank.id, chosenDirection);
             }
             else
             {
-                return new Move(tank.id, ChallengeService.action.FIRE);
+                move = new Move(tank.id, ChallengeService.action.FIRE);
+                _hasShotFromLastPosition = true;
             }
+
+            _lastX = tank.x;
+            _lastY = tank.y;
+            _lastAction = move.Action;
+
+            return move;
         }
 
         public Move MoveInDirection(int tankId, ChallengeService.direction direction)
@@ -88,6 +119,30 @@ namespace Entelect.BattleCity.Challenge
                 default:
                     return new Move(tankId, ChallengeService.action.NONE);
             }
+        }
+
+        private bool checkIsBulletInAir(ChallengeService.state?[][] board, ChallengeService.player me, ChallengeService.unit tank)
+        {
+            var bulletInAir = false;
+            if (me.bullets != null)
+            {
+                foreach (var bullet in me.bullets)
+                {
+                    if (Math.Abs(bullet.x - tank.x) < board.Length / 4)
+                    {
+                        bulletInAir = true;
+                    }
+                }
+            }
+
+            return bulletInAir;
+        }
+
+        private bool checkStuckLastTurn(ChallengeService.unit tank)
+        {
+            return !(_lastAction == ChallengeService.action.FIRE || _lastAction == ChallengeService.action.NONE)
+                && tank.x == _lastX && tank.y == _lastY
+                && _hasShotFromLastPosition;
         }
     }
 }
