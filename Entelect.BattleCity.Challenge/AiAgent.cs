@@ -53,22 +53,19 @@ namespace Entelect.BattleCity.Challenge
             var stuckLastTurn = checkStuckLastTurn(tank);
 
             var enemyBase = enemy.@base;
-			
-			var pastMidpoint = (Math.Abs(enemyBase.y-tank.y) < board[0].Length / 2);
+            
+            var pastMidpoint = (Math.Abs(enemyBase.y-tank.y) < (board[0].Length / 2));
 
             if (stuckLastTurn && (tank.direction == ChallengeService.direction.UP || tank.direction == ChallengeService.direction.DOWN))
             {
                 _targetX = tank.x + (pastMidpoint!=(tank.x > enemyBase.x) ? +1 : -1);
             }
-			
-			
 
             ChallengeService.direction chosenDirection = 
                 tank.y != enemyBase.y ?
                 (
                     _targetX.HasValue && _targetX != tank.x ?
                     (
-						
                         tank.x > _targetX ?
                         ChallengeService.direction.LEFT :
                         ChallengeService.direction.RIGHT

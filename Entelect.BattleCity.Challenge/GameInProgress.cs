@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Collections.Generic;
 using System.Threading;
+using System.Diagnostics;
 
 namespace Entelect.BattleCity.Challenge
 {
@@ -19,29 +20,26 @@ namespace Entelect.BattleCity.Challenge
         private AiAgent _tank1Ai;
         private AiAgent _tank2Ai;
 
+        private Stopwatch _stepTimer;
+
         public GameInProgress(ChallengeService.ChallengeClient service, ChallengeService.state?[][] board)
         {
             _service = service;
             _board = board;
 
-            updateGameStatus();
+            updateGameStatus(true);
 
             _tank1Ai = new AiAgent(_me.units[0].id);
             _tank2Ai = new AiAgent(_me.units[1].id);
         }
 
-
-
         public void run()
         {
             while (true)
             {
-                long nextTick = _currentState.nextTickTime.Ticks;
-                long currentTick = DateTime.Now.Ticks;
-
-                if (currentTick > nextTick)
+                if (_currentState.millisecondsToNextTick-_stepTimer.ElapsedMilliseconds < 0)
                 {
-                    Console.Error.WriteLine("Waiting for next tick. Current time: {0}, next game tick at: {1}", currentTick, nextTick);
+                    Console.Error.WriteLine("Waiting for next tick. Milliseconds to next tick on last update: {0}. Elapsed milliseconds since then: {1}.", _currentState.millisecondsToNextTick, _stepTimer.ElapsedMilliseconds);
                     updateGameStatus();
                     continue;
                 }
@@ -89,17 +87,14 @@ namespace Entelect.BattleCity.Challenge
 
         private void waitForNextTick()
         {
-            var nextTick = _currentState.nextTickTime.Ticks;
-            var currentTick = DateTime.Now.Ticks;
-
-            var sleepTime = TimeSpan.FromTicks(nextTick - currentTick)+TimeSpan.FromMilliseconds(500);
+            var sleepTime = TimeSpan.FromMilliseconds(_currentState.millisecondsToNextTick-_stepTimer.ElapsedMilliseconds+500);
             if (sleepTime.Ticks < 0L)
             {
                 Console.Error.WriteLine("ERROR: Gone passed the next tick time");
             }
             else
             {
-                Console.WriteLine("Sleeping until {1} for {0} processor ticks", sleepTime.Ticks, nextTick);
+                Console.WriteLine("Sleeping for {0}ms", sleepTime.Milliseconds);
                 try
                 {
                     Thread.Sleep(sleepTime);
@@ -110,13 +105,31 @@ namespace Entelect.BattleCity.Challenge
                     Console.Error.WriteLine("Exception message: "+ ex.Message);
                 }
 
-                Console.WriteLine("Time after sleep: {0}", DateTime.Now.Ticks);
+                Console.WriteLine("Time since last update after sleep: {0}ms", _stepTimer.ElapsedMilliseconds);
             }
         }
 
-        private void updateGameStatus()
+        private void updateGameStatus(bool firstTime = false)
         {
-            _currentState = _service.getStatus();
+            if (firstTime)
+            {
+                _currentState = _service.getStatus();
+            }
+            else
+            {
+                var previousTick = _currentState.currentTick;
+                Console.WriteLine("Updating game status. Current tick is {0}", previousTick);
+                while (previousTick == _currentState.currentTick)
+                {
+                    _currentState = _service.getStatus();
+
+                    if (previousTick == _currentState.currentTick)
+                    {
+                        Console.WriteLine("Tried to retrieve new status before next tick. Current tick is {0}. Last tick is {1}.", _currentState.currentTick, previousTick);
+                    }
+                }
+            }
+            _stepTimer = Stopwatch.StartNew();
 
             bool meFound = false;
             bool enemyFound = false;
