@@ -1,4 +1,5 @@
-﻿using System.ServiceModel;
+﻿using System;
+using System.ServiceModel;
 
 namespace Entelect.BattleCity.Challenge
 {
@@ -6,13 +7,21 @@ namespace Entelect.BattleCity.Challenge
     {
         static void Main(string[] args)
         {
-            var endpointConfigurationName = "ChallengePort";
-            var address = new EndpointAddress(args[0]);
-            var service = new ChallengeService.ChallengeClient(endpointConfigurationName, address);
-            var board = service.login();
+            try
+            {
+                var endpointConfigurationName = "ChallengePort";
+                var address = new EndpointAddress(args[0]);
+                var service = new ChallengeService.ChallengeClient(endpointConfigurationName, address);
+                var board = service.login();
 
-            var game = new GameInProgress(service, board);
-            game.run();
+                var game = new GameInProgress(service, board);
+                game.run();
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Exception thrown. Exiting");
+                Console.Error.WriteLine(ex.StackTrace.ToString());
+            }
         }
     }
 }

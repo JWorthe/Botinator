@@ -3,6 +3,7 @@ using System.Windows;
 using System.Collections.Generic;
 using System.Threading;
 using System.Diagnostics;
+using System.Text;
 
 namespace Entelect.BattleCity.Challenge
 {
@@ -15,7 +16,7 @@ namespace Entelect.BattleCity.Challenge
         private ChallengeService.player _me;
         private ChallengeService.player _enemy;
 
-        private ChallengeService.state?[][] _board;
+        private BoardCell[][] _board;
 
         private AiAgent _tank1Ai;
         private AiAgent _tank2Ai;
@@ -25,13 +26,18 @@ namespace Entelect.BattleCity.Challenge
         public GameInProgress(ChallengeService.ChallengeClient service, ChallengeService.state?[][] board)
         {
             _service = service;
-            _board = board;
+            _board = getBoardCellArrayFromServiceStates(board);
 
             updateGameStatus(true);
+            _board[_me.@base.x][_me.@base.y] = BoardCell.BASE;
+            _board[_enemy.@base.x][_enemy.@base.y] = BoardCell.BASE;
 
-            _tank1Ai = new AiAgent(_me.units[0].id);
-            _tank2Ai = new AiAgent(_me.units[1].id);
+            _tank1Ai = new AiAgent(_me.units[0].id, false);
+            _tank2Ai = new AiAgent(_me.units[1].id, true);
+            drawBoard();
         }
+
+        
 
         public void run()
         {
@@ -156,6 +162,69 @@ namespace Entelect.BattleCity.Challenge
             {
                 Console.Error.WriteLine("Logged in opponent was not found");
             }
+        }
+
+        private void drawBoard()
+        {
+            for (int x = 0; x < _board.Length; ++x)
+            {
+                var stringBoard = new StringBuilder();
+                for (int y = 0; y < _board[x].Length; ++y)
+                {
+                    switch (_board[x][y])
+                    {
+                        case BoardCell.EMPTY:
+                            stringBoard.Append(' ');
+                            break;
+                        case BoardCell.WALL:
+                            stringBoard.Append('#');
+                            break;
+                        case BoardCell.OUT_OF_BOUNDS:
+                            stringBoard.Append('O');
+                            break;
+                        case BoardCell.BASE:
+                            stringBoard.Append('@');
+                            break;
+                        default:
+                            stringBoard.Append('!');
+                            break;
+                    }
+                    
+                }
+                Console.WriteLine(stringBoard.ToString());
+            }
+        }
+
+        private BoardCell[][] getBoardCellArrayFromServiceStates(ChallengeService.state?[][] stateBoard)
+        {
+            BoardCell[][] newBoard = new BoardCell[stateBoard.Length][];
+            for (int x = 0; x < stateBoard.Length; ++x)
+            {
+                newBoard[x] = new BoardCell[stateBoard[x].Length];
+                for (int y = 0; y < stateBoard[x].Length; ++y)
+                {
+                    switch (stateBoard[x][y])
+                    {
+                        case null:
+                        case ChallengeService.state.NONE:
+                        case ChallengeService.state.EMPTY:
+                            newBoard[x][y] = BoardCell.EMPTY;
+                            break;
+                        case ChallengeService.state.FULL:
+                            newBoard[x][y] = BoardCell.WALL;
+                            break;
+                        case ChallengeService.state.OUT_OF_BOUNDS:
+                            newBoard[x][y] = BoardCell.OUT_OF_BOUNDS;
+                            break;
+                        default:
+                            newBoard[x][y] = BoardCell.OUT_OF_BOUNDS;
+                            break;
+                    }
+
+                }
+            }
+
+            return newBoard;
         }
     }
 }

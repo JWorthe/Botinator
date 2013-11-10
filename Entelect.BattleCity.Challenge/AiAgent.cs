@@ -14,29 +14,22 @@ namespace Entelect.BattleCity.Challenge
 
         private int? _targetX;
 
-        public AiAgent(int tankId)
+        private bool _checkForOpenPathToMiddle;
+        private bool _headingToMiddle;
+
+        public AiAgent(int tankId, bool checkForOpenPathToMiddle)
         {
             _tankId = tankId;
+            _checkForOpenPathToMiddle = checkForOpenPathToMiddle;
             _lastAction = ChallengeService.action.NONE;
             _hasShotFromLastPosition = false;
+            _headingToMiddle = false;
         }
 
-        public Move GetBestMove(ChallengeService.game game, ChallengeService.state?[][] board, ChallengeService.player me, ChallengeService.player enemy)
+        public Move GetBestMove(ChallengeService.game game, BoardCell[][] board, ChallengeService.player me, ChallengeService.player enemy)
         {
             Move move = null;
-            ChallengeService.unit tank = null;
-
-            if (me != null && me.units != null)
-            {
-                foreach (var unit in me.units)
-                {
-                    if (unit.id == _tankId)
-                    {
-                        Console.WriteLine("Tank found in list of tanks");
-                        tank = unit;
-                    }
-                }
-            }
+            ChallengeService.unit tank = findTankInPlayer(_tankId, me);
 
             if (tank == null)
             {
@@ -48,6 +41,8 @@ namespace Entelect.BattleCity.Challenge
             {
                 _hasShotFromLastPosition = false;
             }
+
+            Console.WriteLine("Tank {0} position: {1}, {2}", _tankId, tank.x, tank.y);
 
             var bulletInAir = checkIsBulletInAir(board, me, tank);
             var stuckLastTurn = checkStuckLastTurn(tank);
@@ -61,30 +56,58 @@ namespace Entelect.BattleCity.Challenge
                 _targetX = tank.x + (pastMidpoint!=(tank.x > enemyBase.x) ? +1 : -1);
             }
 
+            if (_checkForOpenPathToMiddle && !_headingToMiddle && tank.x != enemyBase.x)
+            {
+                var pathToMiddleIsOpen = testPathToMiddleIsOpen(board, tank, enemyBase, true);
+                //TODO Disable driving over own base
+                if (pathToMiddleIsOpen)
+                {
+                    Console.WriteLine("Path to middle is open, heading there now");
+                    _headingToMiddle = true;
+                }
+                else
+                {
+                    Console.WriteLine("Checked for path to middle, but path is not clear");
+                }
+            }
+            if (_checkForOpenPathToMiddle && _headingToMiddle && tank.x == enemyBase.x)
+            {
+                _headingToMiddle = false;
+            }
+
+
             ChallengeService.direction chosenDirection = 
-                tank.y != enemyBase.y ?
-                (
-                    _targetX.HasValue && _targetX != tank.x ?
-                    (
-                        tank.x > _targetX ?
-                        ChallengeService.direction.LEFT :
-                        ChallengeService.direction.RIGHT
-                    ) :
-                    (
-                        tank.y > enemyBase.y ?
-                        ChallengeService.direction.UP :
-                        ChallengeService.direction.DOWN
-                    )
-                ) :
+                _headingToMiddle ?
                 (
                     tank.x > enemyBase.x ?
                     ChallengeService.direction.LEFT :
                     ChallengeService.direction.RIGHT
+                ) :
+                (
+                    tank.y != enemyBase.y ?
+                    (
+                        _targetX.HasValue && _targetX != tank.x ?
+                        (
+                            tank.x > _targetX ?
+                            ChallengeService.direction.LEFT :
+                            ChallengeService.direction.RIGHT
+                        ) :
+                        (
+                            tank.y > enemyBase.y ?
+                            ChallengeService.direction.UP :
+                            ChallengeService.direction.DOWN
+                        )
+                    ) :
+                    (
+                        tank.x > enemyBase.x ?
+                        ChallengeService.direction.LEFT :
+                        ChallengeService.direction.RIGHT
+                    )
                 );
 
             Console.WriteLine("Chosen direction for tank {0} is {1} and bulletInAir is {2}", _tankId, chosenDirection, bulletInAir);
 
-            if (chosenDirection != tank.direction || bulletInAir)
+            if (chosenDirection != tank.direction || bulletInAir || _headingToMiddle)
             {
                 move = MoveInDirection(tank.id, chosenDirection);
             }
@@ -99,6 +122,52 @@ namespace Entelect.BattleCity.Challenge
             _lastAction = move.Action;
 
             return move;
+        }
+
+        private bool testPathToMiddleIsOpen(BoardCell[][] board, ChallengeService.unit tank, ChallengeService.@base enemyBase, bool allowGoThroughBase)
+        {
+            var minY = tank.y - 2;
+            var maxY = tank.y + 2;
+            var minX = Math.Min(tank.x, enemyBase.x)-2;
+            var maxX = Math.Max(tank.x, enemyBase.x)+2;
+
+            bool insideRange = board.Length > maxX && board[maxX].Length > maxY && 0 <= minX && 0 <= minY;
+            if (!insideRange)
+            {
+                Console.Error.WriteLine("Somehow, range to check for emptiness ended outside of bounds of board");
+                return false;
+            }
+
+            for (int x = minX; x <= maxX; ++x)
+            {
+                for (int y = minY; y <= maxY; ++y)
+                {
+                    if (board[x][y] != BoardCell.EMPTY)
+                    {
+                        Console.WriteLine("Obstacle found at {0}, {1}, type {2}", x, y, board[x][y]);
+                        return false;
+                    }
+                    
+                }
+            }
+
+            return true;
+        }
+
+        private ChallengeService.unit findTankInPlayer(int tankId, ChallengeService.player me)
+        {
+            if (me != null && me.units != null)
+            {
+                foreach (var unit in me.units)
+                {
+                    if (unit.id == _tankId)
+                    {
+                        Console.WriteLine("Tank found in list of tanks");
+                        return unit;
+                    }
+                }
+            }
+            return null;
         }
 
         public Move MoveInDirection(int tankId, ChallengeService.direction direction)
@@ -118,7 +187,7 @@ namespace Entelect.BattleCity.Challenge
             }
         }
 
-        private bool checkIsBulletInAir(ChallengeService.state?[][] board, ChallengeService.player me, ChallengeService.unit tank)
+        private bool checkIsBulletInAir(BoardCell[][] board, ChallengeService.player me, ChallengeService.unit tank)
         {
             var bulletInAir = false;
             if (me.bullets != null)
