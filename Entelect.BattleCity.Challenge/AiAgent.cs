@@ -51,15 +51,15 @@ namespace Entelect.BattleCity.Challenge
             
             var pastMidpoint = (Math.Abs(enemyBase.y-tank.y) < (board[0].Length / 2));
 
-            if (stuckLastTurn && (tank.direction == ChallengeService.direction.UP || tank.direction == ChallengeService.direction.DOWN))
+            if (stuckLastTurn && (tank.direction == ChallengeService.direction.UP || tank.direction == ChallengeService.direction.DOWN) && enemyBase.x != tank.x)
             {
                 _targetX = tank.x + (pastMidpoint!=(tank.x > enemyBase.x) ? +1 : -1);
             }
 
             if (_checkForOpenPathToMiddle && !_headingToMiddle && tank.x != enemyBase.x)
             {
-                var pathToMiddleIsOpen = testPathToMiddleIsOpen(board, tank, enemyBase, true);
-                //TODO Disable driving over own base
+                var pathToMiddleIsOpen = testPathToMiddleIsOpen(board, tank, enemyBase);
+
                 if (pathToMiddleIsOpen)
                 {
                     Console.WriteLine("Path to middle is open, heading there now");
@@ -124,7 +124,7 @@ namespace Entelect.BattleCity.Challenge
             return move;
         }
 
-        private bool testPathToMiddleIsOpen(BoardCell[][] board, ChallengeService.unit tank, ChallengeService.@base enemyBase, bool allowGoThroughBase)
+        private bool testPathToMiddleIsOpen(BoardCell[][] board, ChallengeService.unit tank, ChallengeService.@base enemyBase)
         {
             var minY = tank.y - 2;
             var maxY = tank.y + 2;
@@ -194,7 +194,7 @@ namespace Entelect.BattleCity.Challenge
             {
                 foreach (var bullet in me.bullets)
                 {
-                    if (Math.Abs(bullet.x - tank.x) < board.Length / 4)
+                    if (Math.Abs(bullet.x - tank.x) < board.Length / 6)
                     {
                         bulletInAir = true;
                     }
