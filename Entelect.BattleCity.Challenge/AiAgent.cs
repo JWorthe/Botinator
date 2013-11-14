@@ -33,7 +33,6 @@ namespace Entelect.BattleCity.Challenge
 
             if (tank == null)
             {
-                Console.WriteLine("Tank {0} does not exist", _tankId);
                 return null;
             }
 
@@ -41,8 +40,6 @@ namespace Entelect.BattleCity.Challenge
             {
                 _hasShotFromLastPosition = false;
             }
-
-            Console.WriteLine("Tank {0} position: {1}, {2}", _tankId, tank.x, tank.y);
 
             var bulletInAir = checkIsBulletInAir(board, me, tank);
             var stuckLastTurn = checkStuckLastTurn(tank);
@@ -58,19 +55,9 @@ namespace Entelect.BattleCity.Challenge
 
             if (_checkForOpenPathToMiddle && !_headingToMiddle && tank.x != enemyBase.x)
             {
-                var pathToMiddleIsOpen = testPathToMiddleIsOpen(board, tank, enemyBase);
-
-                if (pathToMiddleIsOpen)
-                {
-                    Console.WriteLine("Path to middle is open, heading there now");
-                    _headingToMiddle = true;
-                }
-                else
-                {
-                    Console.WriteLine("Checked for path to middle, but path is not clear");
-                }
+                _headingToMiddle = testPathToMiddleIsOpen(board, tank, enemyBase);
             }
-            if (_checkForOpenPathToMiddle && _headingToMiddle && tank.x == enemyBase.x)
+            else if (_checkForOpenPathToMiddle && _headingToMiddle && tank.x == enemyBase.x)
             {
                 _headingToMiddle = false;
             }
@@ -105,8 +92,6 @@ namespace Entelect.BattleCity.Challenge
                     )
                 );
 
-            Console.WriteLine("Chosen direction for tank {0} is {1} and bulletInAir is {2}", _tankId, chosenDirection, bulletInAir);
-
             if (chosenDirection != tank.direction || bulletInAir || _headingToMiddle)
             {
                 move = MoveInDirection(tank.id, chosenDirection);
@@ -134,7 +119,6 @@ namespace Entelect.BattleCity.Challenge
             bool insideRange = board.Length > maxX && board[maxX].Length > maxY && 0 <= minX && 0 <= minY;
             if (!insideRange)
             {
-                Console.Error.WriteLine("Somehow, range to check for emptiness ended outside of bounds of board");
                 return false;
             }
 
@@ -144,7 +128,6 @@ namespace Entelect.BattleCity.Challenge
                 {
                     if (board[x][y] != BoardCell.EMPTY)
                     {
-                        Console.WriteLine("Obstacle found at {0}, {1}, type {2}", x, y, board[x][y]);
                         return false;
                     }
                     
@@ -162,7 +145,6 @@ namespace Entelect.BattleCity.Challenge
                 {
                     if (unit.id == _tankId)
                     {
-                        Console.WriteLine("Tank found in list of tanks");
                         return unit;
                     }
                 }

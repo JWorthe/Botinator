@@ -19,7 +19,7 @@ namespace Entelect.BattleCity.Challenge
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("Exception thrown. Exiting");
+                Console.Error.WriteLine("Uncaught exception thrown. Exiting.");
                 Console.Error.WriteLine(ex.StackTrace.ToString());
             }
         }
